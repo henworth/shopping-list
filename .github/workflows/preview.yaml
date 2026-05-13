@@ -1,0 +1,84 @@
+name: Create preview environment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  THIS_REPO: shopping-list
+  OTHER_REPO: pantry
+
+concurrency:
+  group: preview-shopping-list-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        if: github.event.action != 'closed'
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        if: github.event.action != 'closed'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        if: github.event.action != 'closed'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.ecr.outputs.registry }}/shopping-list:${{ github.sha }}
+            ${{ steps.ecr.outputs.registry }}/shopping-list:branch-${{ github.head_ref }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Checkout infra repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.INFRA_REPO }}
+          path: _infra
+          token: ${{ secrets.INFRA_REPO_TOKEN }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: uv sync (infra)
+        working-directory: _infra
+        run: uv sync --locked
+
+      - name: Build Lambda bundle
+        working-directory: _infra
+        run: bash scripts/build-lambdas.sh
+
+      - name: Reconcile preview environment
+        working-directory: _infra
+        env:
+          GITHUB_ORG: ${{ github.repository_owner }}
+          GITHUB_TOKEN: ${{ secrets.CROSS_REPO_READ_TOKEN }}
+        run: |
+          EVENT=upsert
+          if [ "${{ github.event.action }}" = "closed" ]; then EVENT=delete; fi
+          uv run python scripts/reconcile.py \
+            --this-repo "$THIS_REPO" \
+            --other-repo "$OTHER_REPO" \
+            --branch "${{ github.head_ref }}" \
+            --event "$EVENT" \
+            --this-image-tag "${{ github.sha }}"
