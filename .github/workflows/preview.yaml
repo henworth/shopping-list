@@ -60,7 +60,7 @@ jobs:
           provenance: false
           sbom: false
           tags: |
-            ${{ steps.ecr.outputs.registry }}/shopping-list:${{ github.sha }}
+            ${{ steps.ecr.outputs.registry }}/shopping-list:${{ github.event.pull_request.head.sha }}
             ${{ steps.ecr.outputs.registry }}/shopping-list:branch-${{ steps.branch.outputs.slug }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -96,4 +96,4 @@ jobs:
             --other-repo "$OTHER_REPO" \
             --branch "${{ github.head_ref }}" \
             --event "$EVENT" \
-            --this-image-tag "${{ github.sha }}"
+            --this-image-tag "${{ github.event.pull_request.head.sha }}"
