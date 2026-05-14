@@ -9,7 +9,7 @@ class PantryServiceError(RuntimeError):
 
 
 def create_pantry_item(payload: PantryItemPayload) -> dict:
-    """POST to the pantry service `/items` via Service Connect (intra-env) or the ALB.
+    """POST to the pantry service `/items`.
 
     The URL comes from `PANTRY_INTERNAL_URL`, which already includes the API
     prefix (e.g. `http://pantry:8000/<envName>/pantry`).

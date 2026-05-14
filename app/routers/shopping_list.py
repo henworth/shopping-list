@@ -11,20 +11,15 @@ from app.schemas import (
     ShoppingItemUpdate,
 )
 
-router = APIRouter()
+router = APIRouter(prefix="/lists", tags=["lists"])
 
 
-@router.get("/healthz")
-def healthz() -> dict[str, str]:
-    return {"status": "ok", "service": "shopping-list"}
-
-
-@router.post("/list", response_model=ShoppingItemRead, status_code=status.HTTP_201_CREATED)
+@router.post(path="", response_model=ShoppingItemRead, status_code=status.HTTP_201_CREATED)
 def create_item(payload: ShoppingItemCreate, db: Session = Depends(get_db)) -> ShoppingItemRead:
     return ShoppingItemRead.model_validate(crud.create_item(db, payload))
 
 
-@router.get("/list", response_model=list[ShoppingItemRead])
+@router.get(path="", response_model=list[ShoppingItemRead])
 def list_items(
     purchased: bool | None = Query(default=None),
     db: Session = Depends(get_db),
@@ -33,7 +28,7 @@ def list_items(
     return [ShoppingItemRead.model_validate(i) for i in items]
 
 
-@router.get("/list/{item_id}", response_model=ShoppingItemRead)
+@router.get(path="/{item_id}", response_model=ShoppingItemRead)
 def get_item(item_id: int, db: Session = Depends(get_db)) -> ShoppingItemRead:
     item = crud.get_item(db, item_id)
     if item is None:
@@ -41,7 +36,7 @@ def get_item(item_id: int, db: Session = Depends(get_db)) -> ShoppingItemRead:
     return ShoppingItemRead.model_validate(item)
 
 
-@router.patch("/list/{item_id}", response_model=ShoppingItemRead)
+@router.patch(path="/{item_id}", response_model=ShoppingItemRead)
 def update_item(item_id: int, payload: ShoppingItemUpdate, db: Session = Depends(get_db)) -> ShoppingItemRead:
     item = crud.get_item(db, item_id)
     if item is None:
@@ -49,7 +44,7 @@ def update_item(item_id: int, payload: ShoppingItemUpdate, db: Session = Depends
     return ShoppingItemRead.model_validate(crud.update_item(db, item, payload))
 
 
-@router.delete("/list/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(path="/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_item(item_id: int, db: Session = Depends(get_db)) -> None:
     item = crud.get_item(db, item_id)
     if item is None:
@@ -57,7 +52,7 @@ def delete_item(item_id: int, db: Session = Depends(get_db)) -> None:
     crud.delete_item(db, item)
 
 
-@router.post("/list/{item_id}/purchase", response_model=ShoppingItemRead)
+@router.post(path="/{item_id}/purchase", response_model=ShoppingItemRead)
 def purchase_item(item_id: int, db: Session = Depends(get_db)) -> ShoppingItemRead:
     item = crud.get_item(db, item_id)
     if item is None:

@@ -5,7 +5,7 @@ from mangum import Mangum
 
 from app.config import settings
 from app.database import Base, engine
-from app.routers import shopping_list
+from app.routers import health, shopping_list
 
 
 @asynccontextmanager
@@ -21,6 +21,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.include_router(shopping_list.router)
+app.include_router(health.router)
 
 # AWS Lambda entry point. Mangum auto-detects the event source (API Gateway v1/v2,
 # ALB, or Lambda Function URL) and adapts it to the FastAPI ASGI app.

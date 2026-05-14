@@ -4,7 +4,7 @@ FastAPI + SQLAlchemy + Postgres CRUD service for the shopping list. Calls `pantr
 
 ## Endpoints
 
-All endpoints are served under `${API_PREFIX}` (default `/shopping`). In an ephemeral environment the prefix becomes `/<envName>/shopping`.
+All endpoints are served under `${API_PREFIX}` (default `/shopping`).
 
 | Method | Path | Description |
 | --- | --- | --- |
@@ -20,7 +20,7 @@ All endpoints are served under `${API_PREFIX}` (default `/shopping`). In an ephe
 
 - `DATABASE_URL` — SQLAlchemy URL for the per-env shopping DB
 - `API_PREFIX` — path prefix (default `/shopping`)
-- `PANTRY_INTERNAL_URL` — full URL to the `pantry` service endpoint (with prefix). In an ephemeral environment this is `http://pantry:8000/<envName>/pantry` via ECS Service Connect.
+- `PANTRY_INTERNAL_URL` — full URL to the `pantry` service endpoint (with prefix). In an ephemeral environment this would be a Function URL, e.g. `https://<random>.lambda-url.<region>.on.aws/pantry`.
 - `PANTRY_REQUEST_TIMEOUT_SECONDS` — optional, default 5
 
 ## Local dev
