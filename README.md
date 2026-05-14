@@ -33,7 +33,7 @@ cp .env.example .env
 uv run uvicorn app.main:app --reload --port 8001
 ```
 
-For the full cross-service stack (postgres + pantry + shopping-list with hot reload), check out the [infra repo](https://github.com/your-org/infra) as a sibling of this one and run:
+For the full cross-service stack (postgres + pantry + shopping-list with hot reload), check out the [infra repo](https://github.com/henworth/infra) as a sibling of this one and run:
 
 ```bash
 cd ../infra
