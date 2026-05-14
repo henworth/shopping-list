@@ -16,10 +16,10 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
@@ -29,10 +29,13 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build and push image (main + sha)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true
+          platforms: linux/amd64
+          provenance: false
+          sbom: false
           tags: |
             ${{ steps.ecr.outputs.registry }}/shopping-list:main
             ${{ steps.ecr.outputs.registry }}/shopping-list:${{ github.sha }}
