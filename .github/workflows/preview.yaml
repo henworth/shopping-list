@@ -21,10 +21,10 @@ jobs:
   preview:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
@@ -34,31 +34,46 @@ jobs:
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      # Docker/OCI image tags cannot contain '/' (and other chars). head_ref is
+      # the raw branch name, e.g. feat/create-health-router → feat-create-health-router.
+      - name: Sanitize branch for Docker tag
+        if: github.event.action != 'closed'
+        id: branch
+        run: |
+          raw='${{ github.head_ref }}'
+          safe=$(printf '%s' "$raw" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g' | sed 's/-\{2,\}/-/g; s/^-//; s/-$//')
+          if [ -z "$safe" ]; then safe='branch'; fi
+          safe=$(printf '%s' "$safe" | cut -c1-121)
+          echo "slug=$safe" >>"$GITHUB_OUTPUT"
+
       - name: Set up Docker Buildx
         if: github.event.action != 'closed'
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build and push image
         if: github.event.action != 'closed'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true
+          platforms: linux/amd64
+          provenance: false
+          sbom: false
           tags: |
-            ${{ steps.ecr.outputs.registry }}/shopping-list:${{ github.sha }}
-            ${{ steps.ecr.outputs.registry }}/shopping-list:branch-${{ github.head_ref }}
+            ${{ steps.ecr.outputs.registry }}/shopping-list:${{ github.event.pull_request.head.sha }}
+            ${{ steps.ecr.outputs.registry }}/shopping-list:branch-${{ steps.branch.outputs.slug }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Checkout infra repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ vars.INFRA_REPO }}
           path: _infra
           token: ${{ secrets.INFRA_REPO_TOKEN }}
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v8.1.0
 
       - name: uv sync (infra)
         working-directory: _infra
@@ -81,4 +96,4 @@ jobs:
             --other-repo "$OTHER_REPO" \
             --branch "${{ github.head_ref }}" \
             --event "$EVENT" \
-            --this-image-tag "${{ github.sha }}"
+            --this-image-tag "${{ github.event.pull_request.head.sha }}"
